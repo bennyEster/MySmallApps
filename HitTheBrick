@@ -1,0 +1,587 @@
+<html>
+
+<head>
+    <title>Hit The Bricks</title>
+    
+</head>
+
+
+<body>
+    <style>
+        body {
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        width: 100%;
+    }
+
+
+        div{
+            display: block;
+            padding: 0;
+               margin: 0 auto;
+
+        }
+
+
+        canvas{
+                display: block;
+                padding: 0;
+                margin: 0 auto;
+
+                    width:500px;
+                    height:500px;
+                    border-color:black;
+                    background-color:blueviolet;
+
+        }
+        
+        input {
+            width:240px;
+            height:150px;
+             font-family:'Arial Rounded MT';
+             font-size:50px;
+              background-color:aquamarine;
+              border-radius:50px;
+        }
+        .state_button
+        {
+            height:50px;
+            width:100px;
+            font-size:10px;
+             background-color:blueviolet;
+        }
+        p{
+            background-color:azure;
+            color:red;
+            font-size:20px;
+            font-family:'AR CENA';
+            
+        }
+        div.gu{
+            max-width:510px;
+            background-color:blue;
+            color:blue;
+        }
+    </style>
+    <embed src="success.wav" autostart="false" width="0" height="0" id="sound" enablejavascript="true">
+    <audio id="sound" ></audio>
+        
+    <div>
+        
+        <p id="text"> </p>
+       
+        <canvas id="BricksBoard"></canvas>
+    </div>
+    <div class="gu">
+        <input  id="buttonLeft" type="button" value="< " />
+        <input  id="buttonRight" type="button" value=" >" />
+    </div>
+    <div>
+        <input  class="state_button" type="button" value="Reload" onclick="Reload()" />
+        <input class="state_button" type="button" value="Pause" onclick="Pause()"/>
+        <input class="state_button" id="sound State" type="button" value="sound" onclick="sssound()" /> 
+        
+    </div>
+    <script>
+        /*
+        ****************************************************
+        *
+        *       variables
+        *
+        ***************************************************
+        */
+        
+
+        //
+        // size variables
+        //
+        var row = 15;
+        var column = 10;
+        var barrier_length = 70;
+        var barrier_height = 3;
+        var width_canvas=300;
+        var height_canvas = 150;
+        var ball_size_X = 10;
+        var ball_size_Y = 5;
+        var brick_size_X = 20;
+        var brick_size_Y = 6;
+        var barrier_move_step = 10;
+        var leftright_threshold = 700;
+        //
+        // end size variables
+        //
+
+        var sound_state = 1;
+        var canvas = document.getElementById("BricksBoard");
+        var ctx = canvas.getContext && canvas.getContext('2d');
+       
+        var Wall = new Array(row);
+        var phase = 4;//  movment direction of the ball  1 southwest 2 southeast 3 north west 4 north east
+        var colide = false;  // if the ball colide with other object true else false
+        var wall = []   // unidimentional array of bricks
+        var bricks_num = 0;
+        var missing_balls = 0;
+        var message = "";
+
+
+        //
+        //end variables
+        //
+
+        if (!ctx) {
+            // No context avilable, let the user know
+            alert("please upgrade your browser");
+        }
+        else {
+            startGame();
+        }
+
+        /*
+        /****************************************************************
+        *
+        *           the Game function is here
+        *
+        ******************************************************************
+        */
+        function startGame() {
+
+            // function Position(x,y)
+            {
+                // this.X = x;
+                // this.Y = y;
+            }
+            //
+            // object S_object
+            //
+            function Game_Object() {
+
+                // object position
+                this.position = function (x, y) {
+                    this.X = x;
+                    this.Y = y;
+                }
+            }
+
+
+
+
+            //
+            // end   S_object
+            //
+
+            //
+            //object Brick
+            //
+            function point(x, y) {
+                this.X = x;
+                this.Y = y;
+            }
+            function Brick() {
+                this.shape = function () {
+                    ctx.fillStyle = "#00ADCB";
+                    ctx.fillRect(this.position.X + 1, this.position.Y + 1, 19, 5);
+                    ctx.strokeStyle = "#0000CC";
+                    ctx.strokeRect(this.position.X, this.position.Y, brick_size_X, brick_size_Y);
+                }
+            }
+            //
+            //object Ball
+            //
+            function Ball() {
+
+                this.shape = function () {
+                    // ctx.fillStyle = "#DDDDDD";
+                    //ctx.beginPath();
+                    //ctx.arc(this.position.X, this.position.Y, 1, 0, 2 * Math.PI);
+                    ctx.fillStyle = "#0000CC";
+                    ctx.fillRect(this.position.X, this.position.Y, ball_size_X, ball_size_Y);
+                }
+
+
+                    this.move = function () {
+
+                        if (colide) {
+
+                            if (this.position.X >= (width_canvas-ball_size_X))
+                            {
+                                this.position.X--;
+                                if (phase == 1) {
+                                    phase = 2;
+                                }
+                                else {
+                                    if (phase == 4) {
+                                        phase = 3;
+                                    }
+                                }
+                            }
+                            else {
+                                if (this.position.X == 0) {
+                                    this.position.X++;
+                                    if (phase == 3) {
+                                        phase = 4;
+                                    }
+                                    else {
+                                        if (phase == 2) {
+                                            phase = 1;
+                                        }
+                                    }
+                                }
+                                else {
+                                    if (this.position.Y >= (height_canvas-ball_size_Y)) {
+                                        this.position.Y--;
+                                        if (phase == 2) {
+                                            phase = 3;
+                                        }
+                                        else {
+                                            if (phase == 1) {
+                                                phase = 4;
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        if (this.position.Y <= 0) 
+                                        {
+                                            this.position.Y++;
+                                            if (phase == 4) {
+                                                phase = 1;
+                                            }
+                                            else {
+                                                if (phase == 3) {
+                                                    phase = 2;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+                                        
+                                     
+                    
+                        colide = false;
+                        //alert("AAAA phase=" + phase);
+                                
+
+                        if (!colide) {
+
+                            //
+                            // A , B current position
+                            //
+                            A = this.position.X;
+                            B = this.position.Y;
+
+                            if (phase == 4) // if north west
+                            {
+                                A = A + 1;
+                                B = B - 1;
+                            }
+                            else {
+                                if (phase == 3)  //north east
+                                {
+                                    A = A - 1;
+                                    B = B - 1;
+
+                                }
+                                else {
+                                    if (phase == 2)// 'SouthEast'
+                                    {
+                                        A = A - 1;
+                                        B = B + 1;
+                                    }
+                                    else {
+                                        if (phase == 1) {//'SouthWest'
+                                            A = A + 1;
+                                            B = B + 1;
+                                        }
+                                    }
+                                }
+                            }
+                            this.position.X = A;
+                            this.position.Y = B;
+                        }
+                    }//end move
+                }// end Ball
+       
+
+
+            //
+            // the player Barrier (this is the player body)
+            //
+            function Barrier() {
+                this.shape = function () {
+                    ctx.fillStyle = "#DDDDDD";
+                    ctx.fillRect(this.position.X + 1, this.position.Y + 1, barrier_length - 1, 2);
+                    ctx.strokeStyle = "#BBBBBB";
+                    ctx.strokeRect(this.position.X, this.position.Y, barrier_length, barrier_height);
+                }
+
+                this.move_left = function () {
+                    if (this.position.X > 0) {
+                        //var B = this.position.X;
+                        this.position.X = this.position.X - barrier_move_step;
+                    }
+                }
+
+
+                this.move_right = function () {
+                    if (this.position.X < 300 - barrier_length) {
+                        //var A = this.position.X;
+                        //A = A + 10;
+                        //this.position.X = A;
+                        this.position.X = this.position.X + barrier_move_step;
+                        //this.position.X++;
+                        //this.position.X++
+                    }
+                }
+            }
+            //
+            //   end Player Barrier
+            //
+            Brick.prototype = new Game_Object;
+            Ball.prototype = new Game_Object;
+            Barrier.prototype = new Game_Object;
+            MESSAGE(bricks_num, missing_balls);
+            
+            
+            var numbers = []
+            var count = 0;
+            for (var i = 0; i < row; i++) {
+                //Wall[i] = new Array(column);
+                for (var j = 0; j < column; j++) {
+                    
+                    wall[count] = {
+                        X: (i * brick_size_X),
+                        Y: (j * brick_size_Y)
+                    }
+                    count++;
+                }
+            }
+
+            var barrier = new Barrier();
+
+            barrier.position.X = 130;
+            barrier.position.Y = 145;
+            barrier.shape();
+
+
+            var ball = new Ball();
+
+            ball.position.X = 200;
+            ball.position.Y = 100;
+            ball.shape();
+            
+            
+            //
+            //   a function the indicates whether the ball colided with other object and changes its phase and maybe destoys a  brick
+            //
+            function collision() {
+                if (wall.length > 0) {
+                    for (i = 0; i < wall.length; i++) {
+                        if ((wall[i].X - ball_size_X <= ball.position.X) && (wall[i].X + brick_size_X >= ball.position.X) /*&& (wall[i].Y >= ball.position.Y)*/ && ((wall[i].Y + brick_size_Y == ball.position.Y))) {
+                            colide = true;
+                            Sound();
+                            wall.splice(i, 1);
+                            bricks_num++;
+                            MESSAGE(bricks_num, missing_balls);
+                            
+                            ctx.clearRect(0, 0, width_canvas, (brick_size_Y * row));
+                            if (phase = 4) {
+                                phase = 1;
+                            }
+                            if (phase == 3) {
+                                phase = 2;
+                            }
+
+
+                        }
+                    }
+
+                    if ((ball.position.X >= barrier.position.X) && (ball.position.X <= barrier.position.X + barrier_length) && (ball.position.Y > (height_canvas - ball_size_X - barrier_height))) {
+                        colide = true;
+                        if (phase == 2) {
+                            phase = 3;
+                        }
+                        else {
+                            if (phase == 1) {
+                                phase = 4;
+                            }
+                        }
+                    }
+                    else {
+                        if (ball.position.Y > (height_canvas - ball_size_X)) {
+                            ball.position.X = (width_canvas / 2);
+                            ball.position.Y = ((column * brick_size_Y) + 5);
+                            missing_balls++;
+                            MESSAGE(bricks_num,missing_balls);
+                        }
+                    }
+
+
+
+                    if ((ball.position.X > 0) && (ball.position.X < (width_canvas - ball_size_X)) && (ball.position.Y > 0)) {
+                        colide = false;
+                    }
+                    else {
+                        colide = true;
+                    }
+                }
+                else
+                {
+                    Reload();
+                }
+            }
+
+
+
+
+            setInterval(function () {
+                //ctx.clearRect(0, 0, 300, 90);
+                ctx.clearRect(barrier.position.X - 10, barrier.position.Y - 10, barrier_length + 50, 20);
+                ctx.clearRect(ball.position.X - 5, ball.position.Y - 5, ball_size_X+5, ball_size_Y+5);
+                for (var m = 0; m < wall.length; m++) {
+                    ctx.clearRect(wall[m].X, wall[m].Y, brick_size_X, brick_size_Y);
+                }
+
+                for (var m = 0; m < wall.length; m++) {
+                    ctx.fillStyle = "#00ADCB";
+                    ctx.fillRect(wall[m].X + 1, wall[m].Y + 1, (brick_size_X-1), brick_size_Y-1);
+                    ctx.strokeStyle = "#0000CC";
+                    ctx.strokeRect(wall[m].X, wall[m].Y, brick_size_X, brick_size_Y);
+                }
+
+                ball.move();
+                collision();
+                barrier.shape();
+                ball.shape();
+                
+            }, 14);
+
+           
+            function eventFramemouse(e) {
+                if (e.clientY < (height_canvas*(3.8))) {
+                    if (e.clientX < leftright_threshold) {
+                        barrier.move_left();
+                    }
+                    else {
+                        barrier.move_right();
+                    }
+                }
+            }
+
+
+            function eventFrameKey(e) {
+                ctx.clearRect(barrier.position.X, barrier.position.Y, 31, 3);
+                if (e.keyCode == 32) {
+                    //fire();
+                }
+                if (e.keyCode == 37) {
+                    //alert("left");
+                    barrier.move_left();
+                }
+                if (e.keyCode == 39) {
+                    barrier.move_right();
+                    //alert("right");
+                }
+            }
+            function MoveLeft() {
+                barrier.move_left();
+            }
+            function MoveRight() {
+                barrier.move_right();
+            }
+            
+            function Sound()
+            {
+                if (sound_state == 0) {
+
+                }
+                else {
+
+                    var snd = new Audio("data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");
+                    snd.play();
+                }
+
+            }
+        
+            document.getElementById("buttonRight").addEventListener("click", MoveRight, true);
+            document.getElementById("buttonLeft").addEventListener("click", MoveLeft, true);
+            
+
+            document.getElementById("buttonRight").addEventListener("mouse", MoveRight, true);
+            document.getElementById("buttonLeft").addEventListener("mouse", MoveLeft, true);
+           
+            
+            window.addEventListener("keydown", eventFrameKey, true);
+            window.addEventListener("mousedown", eventFramemouse, true);
+           
+
+           
+        }
+        function LOAD()
+        {
+            var numbers = []
+            var count = 0;
+            for (var i = 0; i < row; i++) {
+                //Wall[i] = new Array(column);
+                for (var j = 0; j < column; j++) {
+
+                    wall[count] = {
+                        X: (i * brick_size_X),
+                        Y: (j * brick_size_Y)
+                    }
+                    count++;
+                }
+            }
+
+            var barrier = new Barrier();
+
+            barrier.position.X = 130;
+            barrier.position.Y = 145;
+            barrier.shape();
+
+
+            var ball = new Ball();
+
+            ball.position.X = 200;
+            ball.position.Y = 100;
+            ball.shape();
+        }
+        function MESSAGE(bricks_num, missing_balls) {
+            message = "FALLEN BRICKS:" + bricks_num + "   MISSING BALLS: " + missing_balls;
+            ALERT(message);
+        }
+
+        function Reload(bricks_num, missing_balls)
+        {
+            if (wall.length == 0) {
+                message = "Great you destroyed the wall !!! +you destroyed" + bricks_num + "you missed " + missing_balls + " balls";
+
+                MESSAGE(message);
+                alert(message);
+                message = "";
+            }
+            location.reload();
+            //setTimeout(, 2500);
+        }
+        function ALERT(str) {
+            var mm = document.getElementById("text");
+            mm.innerText = str;
+        }
+        function Pause()
+        {
+          alert("the Game is now paused, if you want to continue playing the game please press on the confirmation button on this message box (OK or ?????) !")  
+        }
+        function sssound() {
+            if (sound_state == 0) {
+                sound_state=1;
+            }
+            else
+            {
+                sound_state = 0;
+            }
+        }
+    </script>
+</body>
+</html>
